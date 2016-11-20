@@ -107,9 +107,9 @@ err=$?
 echo "os="$DISTNAME:$DISTVER:$DISTCODE:$ARCH
 echo "MariaDBServer=$M7VER"
 if [ $err -eq 0 ] then;
-	echo SUCCESS
+        echo SUCCESS
 else
-	echo FAILURE
+        echo FAILURE
 fi
 
 exit $err
