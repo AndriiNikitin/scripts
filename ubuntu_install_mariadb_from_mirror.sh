@@ -6,11 +6,16 @@ M7ROOTPWD=1
 # detect os_distname
 # PLATFORM
 
-DISTNAME=`python -c 'import platform; print platform.linux_distribution()[0].lower()'`
-DISTVER=`python -c 'import platform; print platform.linux_distribution()[1]'`
-DISTCODE=`python -c 'import platform; print platform.linux_distribution()[2].lower()'`
+# DISTNAME=`python -c 'import platform; print platform.linux_distribution()[0].lower()'`
+# DISTVER=`python -c 'import platform; print platform.linux_distribution()[1]'`
+# DISTCODE=`python -c 'import platform; print platform.linux_distribution()[2].lower()'`
 
-ARCH=`python -c 'import platform; print platform.machine()'`
+DISTNAME=`cat /etc/*release | grep -oP "^ID=\K.*"`
+DISTVER=`cat /etc/*release | grep -oP "^VERSION_ID=\K.*"`
+DISTCODE=`cat /etc/*release | grep -oP "^DISTRIB_CODENAME=\K.*"`
+
+# ARCH=`python -c 'import platform; print platform.machine()'`
+ARCH=`uname -m`
 
 case $ARCH in 
 x86_64) ARCH=amd64 ;;
@@ -35,7 +40,6 @@ PKGARRAY=($PKGLIST)
 # make sure nothing installed
 dpkg -l | grep -iE "(mysql-server|mariadb-server)" && echo "It looks that server packages are already installed - exiting" && exit 1
 
-
 # remove existing packages
 # for (( idx=${#PKGARRAY[@]}-1 ; idx>=0 ; idx-- )) ; do
 #	echo "${MYARRAY[idx]}"
@@ -43,15 +47,16 @@ dpkg -l | grep -iE "(mysql-server|mariadb-server)" && echo "It looks that server
 # done
 
 # todo!!! check that repo is not there
-apt-get -y install python-software-properties
-
-
 set -e
+apt-get -y install python-software-properties || (apt-get update && apt-get -y install python-software-properties)
+
 apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 $PUBKEY\
  && add-apt-repository 'deb [arch=amd64,i386] http://mirror.one.com/mariadb/repo/'$M7MAJOR'/'$DISTNAME' '$DISTCODE' main' \
  && apt-get update
 
 echo $?
+
+wget -V > /dev/nul || apt-get install wget
 
 download () {
         PACKAGE=$1
@@ -70,8 +75,8 @@ do
         download $i
 done
 
-dpkg -i *common*$M7MAJOR*.deb
-dpkg -i lib*client*$M7MAJOR*.deb
+dpkg -i *common*$M7VER*$DISTCODE*.deb
+dpkg -i lib*client*$M7VER*$DISTCODE*.deb
 
 # this will install only dependancies, excluding upgrades and mysql/mariadb packages
 # need derty hack with perl regexp below to actually include perl dependencies which have mysql in it
@@ -92,9 +97,19 @@ export DEBIAN_FRONTEND=noninteractive
 debconf-set-selections <<< 'mariadb-server-$M7MAJOR mysql-server/root_password password '"$M7ROOTPWD"
 debconf-set-selections <<< 'mariadb-server-$M7MAJOR mysql-server/root_password_again password '"$M7ROOTPWD"
 
-dpkg -i *$M7VER*.deb
+dpkg -i *$M7VER*$DISTCODE*.deb
 
 # let mysql server to start
 # test connection
+mysql -uroot -p"$M7ROOTPWD"  -e'select version()'
+err=$?
 
-mysql -uroot -p"$M7ROOTPWD"  -e'select version()' && echo succeed || (err=$?; echo fail; exit $err)
+echo "os="$DISTNAME:$DISTVER:$DISTCODE:$ARCH
+echo "MariaDBServer=$M7VER"
+if [ $err -eq 0 ] then;
+	echo SUCCESS
+else
+	echo FAILURE
+fi
+
+exit $err
