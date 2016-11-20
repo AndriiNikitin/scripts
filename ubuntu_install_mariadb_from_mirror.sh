@@ -1,20 +1,19 @@
-M7VER=10.0.27
-M7MAJOR=10.0
+
+# M7VER=10.0.27
+
+M7VER=$1
+
+[[ $M7VER =~ [1-9][0-9].[0-9].[0-9][0-9] ]] || { echo "Expected MariaDB version as first parameter, e.g. 10.0.27; got ($M7VER)";  exit 2; }
+
+M7MAJOR=${M7VER%\.*}
+
 # todo !! test special characters in passwords
 M7ROOTPWD=1
-
-# detect os_distname
-# PLATFORM
-
-# DISTNAME=`python -c 'import platform; print platform.linux_distribution()[0].lower()'`
-# DISTVER=`python -c 'import platform; print platform.linux_distribution()[1]'`
-# DISTCODE=`python -c 'import platform; print platform.linux_distribution()[2].lower()'`
 
 DISTNAME=`cat /etc/*release | grep -oP "^ID=\K.*"`
 DISTVER=`cat /etc/*release | grep -oP "^VERSION_ID=\K.*"`
 DISTCODE=`cat /etc/*release | grep -oP "^DISTRIB_CODENAME=\K.*"`
 
-# ARCH=`python -c 'import platform; print platform.machine()'`
 ARCH=`uname -m`
 
 case $ARCH in 
@@ -48,15 +47,12 @@ dpkg -l | grep -iE "(mysql-server|mariadb-server)" && echo "It looks that server
 
 # todo!!! check that repo is not there
 set -e
-apt-get -y install python-software-properties || (apt-get update && apt-get -y install python-software-properties)
 
-apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 $PUBKEY\
- && add-apt-repository 'deb [arch=amd64,i386] http://mirror.one.com/mariadb/repo/'$M7MAJOR'/'$DISTNAME' '$DISTCODE' main' \
- && apt-get update
+apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 $PUBKEY
+echo 'deb [arch=amd64,i386] http://mirror.one.com/mariadb/repo/'$M7MAJOR'/'$DISTNAME' '$DISTCODE' main' >> /etc/apt/sources.list
+apt-get update
 
-echo $?
-
-wget -V > /dev/nul || apt-get install wget
+wget -V > /dev/nul || apt-get -y install wget
 
 download () {
         PACKAGE=$1
