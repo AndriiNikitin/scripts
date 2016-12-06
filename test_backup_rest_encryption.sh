@@ -5,7 +5,7 @@
 # - Server user has no permission to modify backup (so we guarantee that only backup user can modify backups)
 # - Example of xtrabackup commands which should be used in such environment
 #
-# Tested in docker on blank Ubuntu 16 xenual image with commands below :
+# Tested in docker on blank Ubuntu 16 xenial image with commands below :
 # docker run -it --name script -v //c/Users/User/docker:/test ubuntu:16.04
 # test/test_backup_rest_encryption.sh
 #
